@@ -1,0 +1,44 @@
+services:
+  app:
+    build: .
+    ports:
+      - "8080:80"
+    environment:
+      APP_NAME: "E-FoodHub"
+      APP_ENV: development
+      APP_DEBUG: "1"
+      APP_TIMEZONE: Asia/Kuala_Lumpur
+      DB_DRIVER: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: kvpm_efoodhub
+      DB_USERNAME: foodhub
+      DB_PASSWORD: ${DB_PASSWORD:-local_foodhub_change_me}
+      UPLOAD_MAX_BYTES: "2097152"
+      SESSION_SECURE_COOKIE: "0"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: kvpm_efoodhub
+      MYSQL_USER: foodhub
+      MYSQL_PASSWORD: ${DB_PASSWORD:-local_foodhub_change_me}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-local_root_change_me}
+      TZ: Asia/Kuala_Lumpur
+    command: ["--default-time-zone=+08:00", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-local_root_change_me}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
